@@ -6,8 +6,8 @@ import StatusBadge from "@/components/StatusBadge";
 import { useApp } from "@/context/AppContext";
 
 const COLORS = [
-  "hsl(234, 89%, 56%)",
-  "hsl(260, 65%, 60%)",
+  "hsl(172, 90%, 54%)",
+  "hsl(59, 77%, 52%)",
   "hsl(190, 80%, 45%)",
   "hsl(38, 92%, 50%)",
 ];

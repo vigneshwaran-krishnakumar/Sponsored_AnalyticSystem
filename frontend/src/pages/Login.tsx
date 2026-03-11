@@ -9,13 +9,20 @@ import { useApp } from "@/context/AppContext";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login } = useApp();
+  const [error, setError] = useState("");
+  const { login, loading } = useApp();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email, password);
-    navigate("/dashboard");
+    setError("");
+
+    const success = await login(email, password);
+    if (success) {
+      navigate("/dashboard");
+    } else {
+      setError("Invalid email or password");
+    }
   };
 
   return (
@@ -38,6 +45,11 @@ const Login = () => {
             <p className="mt-1 text-sm text-muted-foreground">Sign in to your account</p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="alex@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -46,7 +58,9 @@ const Login = () => {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" variant="hero" className="w-full">Sign in</Button>
+            <Button type="submit" variant="hero" className="w-full" disabled={loading}>
+              {loading ? "Signing in..." : "Sign in"}
+            </Button>
           </form>
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}

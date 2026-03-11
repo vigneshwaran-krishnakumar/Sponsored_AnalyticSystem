@@ -1,22 +1,76 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/ChartCard";
-import { useApp } from "@/context/AppContext";
+import AddInfluencerModal from "@/components/AddInfluencerModal";
+
+interface Influencer {
+  id: number;
+  name: string;
+  platform: string;
+  followers: number;
+  engagement_rate: number;
+  revenue: number;
+  created_at: string;
+}
 
 const Influencers = () => {
-  const { influencers } = useApp();
+  const [influencers, setInfluencers] = useState<Influencer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [platformFilter, setPlatformFilter] = useState("all");
+
+  const fetchInfluencers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch("http://localhost:5000/api/influencers", {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      setInfluencers(data);
+    } catch (error) {
+      console.error("Error fetching influencers:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInfluencers();
+  }, []);
 
   const platforms = ["all", ...new Set(influencers.map((i) => i.platform))];
   const filtered = platformFilter === "all" ? influencers : influencers.filter((i) => i.platform === platformFilter);
 
-  const chartData = filtered.map((i) => ({ name: i.name.split(" ")[0], engagement: i.engagementRate, revenue: i.revenue / 1000 }));
+  const chartData = filtered.map((i) => ({
+    name: i.name.split(" ")[0],
+    engagement: i.engagement_rate,
+    revenue: i.revenue / 1000
+  }));
+
+  const handleInfluencerCreated = () => {
+    fetchInfluencers(); // Refresh the list
+    setIsModalOpen(false);
+  };
+
+  if (loading) {
+    return <p className="text-center text-muted-foreground">Loading influencers...</p>;
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Influencers</h1>
-        <p className="text-sm text-muted-foreground">Monitor influencer performance across platforms</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Influencers</h1>
+          <p className="text-sm text-muted-foreground">Monitor influencer performance across platforms</p>
+        </div>
+        <Button variant="hero" size="sm" onClick={() => setIsModalOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Influencer
+        </Button>
       </div>
 
       {/* Filter */}
@@ -63,20 +117,28 @@ const Influencers = () => {
               <tr key={inf.id} className="border-b border-border/50 last:border-0 transition-colors hover:bg-secondary/20">
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-xs font-bold text-accent">{inf.avatar}</div>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-xs font-bold text-accent">
+                      {inf.name.split(" ").map(n => n[0]).join("")}
+                    </div>
                     <span className="font-medium text-foreground">{inf.name}</span>
                   </div>
                 </td>
                 <td className="px-4 py-4 text-muted-foreground">{inf.platform}</td>
                 <td className="px-4 py-4 text-right text-foreground">{(inf.followers / 1000000).toFixed(1)}M</td>
-                <td className="px-4 py-4 text-right font-semibold text-primary">{inf.engagementRate}%</td>
-                <td className="px-4 py-4 text-right text-foreground">{inf.campaignCount}</td>
+                <td className="px-4 py-4 text-right font-semibold text-primary">{inf.engagement_rate}%</td>
+                <td className="px-4 py-4 text-right text-foreground">-</td>
                 <td className="px-4 py-4 text-right font-medium text-foreground">${inf.revenue.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <AddInfluencerModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onInfluencerCreated={handleInfluencerCreated}
+      />
     </div>
   );
 };

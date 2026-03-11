@@ -1,0 +1,20 @@
+{
+  "name": "sponsored_analytic_system",
+  "version": "1.0.0",
+  "description": "\"# Sponsored_AnalyticSystem2\" \r \"# Sponsored_AnalyticSystem2\"",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vigneshwaran-krishnakumar/Sponsored_AnalyticSystem2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vigneshwaran-krishnakumar/Sponsored_AnalyticSystem2/issues"
+  },
+  "homepage": "https://github.com/vigneshwaran-krishnakumar/Sponsored_AnalyticSystem2#readme"
+}

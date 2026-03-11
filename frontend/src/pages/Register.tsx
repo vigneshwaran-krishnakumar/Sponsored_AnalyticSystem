@@ -10,13 +10,25 @@ const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login } = useApp();
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const { register, loading } = useApp();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email, password);
-    navigate("/dashboard");
+    setError("");
+    setSuccess(false);
+
+    const success = await register(name, email, password);
+    if (success) {
+      setSuccess(true);
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+    } else {
+      setError("Registration failed. Please try again.");
+    }
   };
 
   return (
@@ -39,6 +51,16 @@ const Register = () => {
             <p className="mt-1 text-sm text-muted-foreground">Get started with Sponsorlytics</p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="rounded-md bg-green-50 p-3 text-sm text-green-800">
+                Account created successfully! Redirecting to login...
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" placeholder="Alex Rivera" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -51,7 +73,9 @@ const Register = () => {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" variant="hero" className="w-full">Create Account</Button>
+            <Button type="submit" variant="hero" className="w-full" disabled={loading || success}>
+              {loading ? "Creating account..." : success ? "Account created!" : "Create Account"}
+            </Button>
           </form>
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
