@@ -1,17 +1,16 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Eye, Plus, Edit } from "lucide-react";
+import { Eye, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/StatusBadge";
-import AddCampaignModal from "@/components/AddCampaignModal";
 import EditCampaignModal from "@/components/EditCampaignModal";
 
 interface Campaign {
   id: number;
   name: string;
   brand: string;
-  status: string;
+  status: "active" | "paused" | "completed";
   budget: number;
   spent: number;
   revenue: number;
@@ -22,7 +21,6 @@ const Campaigns = () => {
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
@@ -47,11 +45,6 @@ const Campaigns = () => {
     fetchCampaigns();
   }, []);
 
-  const handleCampaignCreated = () => {
-    fetchCampaigns(); // Refresh the list
-    setIsModalOpen(false);
-  };
-
   const handleEdit = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
     setIsEditModalOpen(true);
@@ -75,11 +68,6 @@ const Campaigns = () => {
             Manage your sponsorship campaigns
           </p>
         </div>
-
-        <Button variant="hero" size="sm" onClick={() => setIsModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Campaign
-        </Button>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-card">
@@ -168,12 +156,6 @@ const Campaigns = () => {
 
         </table>
       </div>
-
-      <AddCampaignModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onCampaignCreated={handleCampaignCreated}
-      />
 
       <EditCampaignModal
         isOpen={isEditModalOpen}

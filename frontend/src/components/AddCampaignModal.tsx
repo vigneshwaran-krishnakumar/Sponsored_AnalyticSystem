@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useApp } from "@/context/AppContext";
 
 interface AddCampaignModalProps {
   isOpen: boolean;
@@ -25,10 +26,11 @@ interface AddCampaignModalProps {
 }
 
 const AddCampaignModal = ({ isOpen, onClose, onCampaignCreated }: AddCampaignModalProps) => {
+  const { refreshData } = useApp();
   const [formData, setFormData] = useState({
     name: "",
     brand: "",
-    status: "active",
+    status: "Active",
     budget: "",
     spent: "",
     revenue: "",
@@ -56,11 +58,12 @@ const AddCampaignModal = ({ isOpen, onClose, onCampaignCreated }: AddCampaignMod
       });
 
       if (response.ok) {
+        await refreshData(); // ← refresh dashboard data
         onCampaignCreated();
         setFormData({
           name: "",
           brand: "",
-          status: "active",
+          status: "Active",
           budget: "",
           spent: "",
           revenue: "",
@@ -123,8 +126,10 @@ const AddCampaignModal = ({ isOpen, onClose, onCampaignCreated }: AddCampaignMod
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="paused">Paused</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Paused">Paused</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Draft">Draft</SelectItem>
                 </SelectContent>
               </Select>
             </div>

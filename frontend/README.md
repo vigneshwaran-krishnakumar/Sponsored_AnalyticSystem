@@ -1,6 +1,6 @@
 # Sponsored Analytic System
 
-A comprehensive web application for managing influencer marketing campaigns and sponsorship analytics. This project demonstrates full-stack development with React, Node.js, Express, and MongoDB.
+A comprehensive web application for managing influencer marketing campaigns and sponsorship analytics. This project demonstrates full-stack development with React, Node.js, Express, and MySQL.
 
 ## 🎯 Learning Objectives
 
@@ -11,7 +11,7 @@ This application covers all major operations in a modern web application:
 - **Data Visualization**: Charts and analytics dashboards
 - **CRUD Operations**: Create, Read, Update, Delete functionality
 - **User Interface**: Modern UI with shadcn/ui and Tailwind CSS
-- **Database Management**: MongoDB with Mongoose ODM
+- **Database Management**: MySQL with mysql2 driver
 
 ## 🚀 Features
 

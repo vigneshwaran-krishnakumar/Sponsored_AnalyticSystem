@@ -11,23 +11,27 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
   const { register, loading } = useApp();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess(false);
+    setSuccessMsg("");
 
-    const success = await register(name, email, password);
-    if (success) {
-      setSuccess(true);
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    // ✅ Now shows the real error from the server
+    const result = await register(name, email, password);
+    if (result === true) {
+      setSuccessMsg("Account created successfully! Redirecting to login...");
+      setTimeout(() => navigate("/login"), 2000);
     } else {
-      setError("Registration failed. Please try again.");
+      setError(result);
     }
   };
 
@@ -56,30 +60,57 @@ const Register = () => {
                 {error}
               </div>
             )}
-            {success && (
-              <div className="rounded-md bg-green-50 p-3 text-sm text-green-800">
-                Account created successfully! Redirecting to login...
+            {successMsg && (
+              <div className="rounded-md bg-primary/10 p-3 text-sm text-primary">
+                {successMsg}
               </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" placeholder="Alex Rivera" value={name} onChange={(e) => setName(e.target.value)} required />
+              <Input
+                id="name"
+                placeholder="Alex Rivera"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="alex@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input
+                id="email"
+                type="email"
+                placeholder="alex@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input
+                id="password"
+                type="password"
+                placeholder="Min. 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-            <Button type="submit" variant="hero" className="w-full" disabled={loading || success}>
-              {loading ? "Creating account..." : success ? "Account created!" : "Create Account"}
+            <Button
+              type="submit"
+              variant="hero"
+              className="w-full"
+              disabled={loading || !!successMsg}
+            >
+              {loading ? "Creating account..." : successMsg ? "Account created!" : "Create Account"}
             </Button>
           </form>
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="font-medium text-primary hover:underline">Sign in</Link>
+            <Link to="/login" className="font-medium text-primary hover:underline">
+              Sign in
+            </Link>
           </p>
         </div>
       </div>

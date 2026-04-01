@@ -40,7 +40,7 @@ const EditCampaignModal = ({ isOpen, onClose, onCampaignUpdated, campaign }: Edi
   const [formData, setFormData] = useState({
     name: "",
     brand: "",
-    status: "active",
+    status: "Active",
     budget: "",
     spent: "",
     revenue: "",
@@ -143,9 +143,10 @@ const EditCampaignModal = ({ isOpen, onClose, onCampaignUpdated, campaign }: Edi
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="paused">Paused</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Paused">Paused</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Draft">Draft</SelectItem>
                 </SelectContent>
               </Select>
             </div>

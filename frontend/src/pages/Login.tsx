@@ -17,11 +17,12 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
-    const success = await login(email, password);
-    if (success) {
+    // ✅ Now shows the real error from the server
+    const result = await login(email, password);
+    if (result === true) {
       navigate("/dashboard");
     } else {
-      setError("Invalid email or password");
+      setError(result);
     }
   };
 
@@ -52,11 +53,25 @@ const Login = () => {
             )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="alex@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input
+                id="email"
+                type="email"
+                placeholder="alex@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
             <Button type="submit" variant="hero" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign in"}
@@ -64,7 +79,9 @@ const Login = () => {
           </form>
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
-            <Link to="/register" className="font-medium text-primary hover:underline">Sign up</Link>
+            <Link to="/register" className="font-medium text-primary hover:underline">
+              Sign up
+            </Link>
           </p>
         </div>
       </div>

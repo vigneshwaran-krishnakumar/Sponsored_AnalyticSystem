@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { BarChart3, LayoutDashboard, Megaphone, Users, FileText, Settings, Search, Bell, LogOut, Menu, X, ChevronDown } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 
@@ -89,6 +90,7 @@ const DashboardLayout = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <button className="relative rounded-lg p-2 text-muted-foreground hover:bg-secondary">
               <Bell className="h-5 w-5" />
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />

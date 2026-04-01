@@ -4,17 +4,17 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 224 30% 10%;
+    --background: 210 33% 97%; /* #F9FAFB */
+    --foreground: 216 15% 18%; /* text dark */
 
-    --card: 0 0% 100%;
-    --card-foreground: 224 30% 10%;
+    --card: 0 0% 100%; /* white */
+    --card-foreground: 216 15% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 30% 10%;
+    --popover-foreground: 216 15% 18%;
 
-    --primary: 234 89% 56%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 86 82% 56%; /* #A3E635 */
+    --primary-foreground: 0 0% 7%;
 
     --secondary: 220 14% 96%;
     --secondary-foreground: 224 30% 10%;
@@ -51,17 +51,17 @@
   }
 
   .dark {
-    --background: 224 30% 6%;
-    --foreground: 210 40% 96%;
+    --background: 0 0% 7.1%; /* #121212 */
+    --foreground: 210 10% 94%;
 
-    --card: 224 25% 10%;
-    --card-foreground: 210 40% 96%;
+    --card: 0 0% 12%; /* dark card shade */
+    --card-foreground: 210 10% 94%;
 
-    --popover: 224 25% 10%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 210 10% 94%;
 
-    --primary: 234 85% 62%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 86 82% 56%; /* #A3E635 */
+    --primary-foreground: 0 0% 10%;
 
     --secondary: 224 20% 14%;
     --secondary-foreground: 210 40% 96%;
@@ -102,7 +102,7 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }

@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useApp } from "@/context/AppContext";
 
 interface AddInfluencerModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ interface AddInfluencerModalProps {
 }
 
 const AddInfluencerModal = ({ isOpen, onClose, onInfluencerCreated }: AddInfluencerModalProps) => {
+  const { refreshData } = useApp();
   const [formData, setFormData] = useState({
     name: "",
     platform: "",
@@ -55,6 +57,7 @@ const AddInfluencerModal = ({ isOpen, onClose, onInfluencerCreated }: AddInfluen
       });
 
       if (response.ok) {
+        await refreshData(); // ← refresh dashboard data
         onInfluencerCreated();
         setFormData({
           name: "",

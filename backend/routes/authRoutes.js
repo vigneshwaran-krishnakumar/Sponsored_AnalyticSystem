@@ -9,4 +9,7 @@ router.post('/signup', authController.signup);
 // Login route
 router.post('/login', authController.login);
 
+// ✅ NEW: Validate token & return current user
+router.get('/me', authController.me);
+
 module.exports = router;
