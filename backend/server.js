@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 const jwt     = require('jsonwebtoken');
+const db      = require('./config/db');
 
 const app = express();
 
@@ -35,7 +36,6 @@ function protect(req, res, next) {
 }
 
 app.get('/setup', async (req, res) => {
-  const db = require('./config/db');
   try {
     await db.execute(`CREATE TABLE IF NOT EXISTS users (
       id VARCHAR(20) PRIMARY KEY,
@@ -103,7 +103,9 @@ app.use('/api/videos',      protect, require('./routes/videoRoutes'));
 app.use('/api/summary',     protect, require('./routes/summary'));
 app.use('/api/campaigns',   protect, require('./routes/campaignRoutes')); // ← need to create this
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;   // or keep 5000, but PORT env is preferred
 app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`   URL: http://localhost:${PORT}`);
 });
