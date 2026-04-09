@@ -1,4 +1,6 @@
-require('dotenv').config();
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();   // Only load .env locally
+}
 
 const express = require('express');
 const cors    = require('cors');
@@ -103,9 +105,7 @@ app.use('/api/videos',      protect, require('./routes/videoRoutes'));
 app.use('/api/summary',     protect, require('./routes/summary'));
 app.use('/api/campaigns',   protect, require('./routes/campaignRoutes')); // ← need to create this
 
-const PORT = process.env.PORT || 3000;   // or keep 5000, but PORT env is preferred
+const PORT = process.env.PORT || 8080;   // Railway uses process.env.PORT
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`   URL: http://localhost:${PORT}`);
 });

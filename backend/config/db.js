@@ -8,21 +8,20 @@ const pool = mysql.createPool({
   database: process.env.MYSQLDATABASE,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  // ssl: { rejectUnauthorized: false }   // Uncomment ONLY if you get SSL/handshake error later
+  queueLimit: 0
 });
 
-// Test connection at startup
+// Test connection with debug info
 pool.getConnection()
   .then(connection => {
-    console.log('✅ MySQL Connected Successfully on Railway');
+    console.log('✅ MySQL Connected Successfully on Railway!');
     connection.release();
   })
   .catch(err => {
     console.error('❌ MySQL Connection Error:', err.message);
-    console.error('   Host:', process.env.MYSQLHOST);
-    console.error('   User:', process.env.MYSQLUSER);
-    console.error('   Database:', process.env.MYSQLDATABASE);
+    console.error('Host used     :', process.env.MYSQLHOST);
+    console.error('User used     :', process.env.MYSQLUSER);
+    console.error('Database used :', process.env.MYSQLDATABASE);
   });
 
 module.exports = pool;
