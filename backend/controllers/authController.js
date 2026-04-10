@@ -23,15 +23,16 @@ const authController = {
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
+      const newId = Date.now().toString();
 
       const [result] = await pool.execute(
-        'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-        [name, email, hashedPassword]
+        'INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)',
+        [newId, name, email, hashedPassword]
       );
 
       res.status(201).json({
         message: 'User created successfully',
-        userId: result.insertId
+        userId: newId
       });
 
     } catch (error) {
