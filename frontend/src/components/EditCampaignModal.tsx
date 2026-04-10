@@ -68,7 +68,7 @@ const EditCampaignModal = ({ isOpen, onClose, onCampaignUpdated, campaign }: Edi
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/campaigns/${campaign.id}`, {
+      const response = await fetch(`https://sponsoredanalyticsystem-production-60f3.up.railway.app/api/campaigns/${campaign.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

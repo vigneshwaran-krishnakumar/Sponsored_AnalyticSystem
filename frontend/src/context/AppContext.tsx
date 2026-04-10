@@ -38,7 +38,7 @@ const emptyMetrics: DashboardMetrics = {
   influencerPerformance: [],
 };
 
-const BASE = "http://localhost:5000/api";
+const BASE = "https://sponsoredanalyticsystem-production-60f3.up.railway.app/api";
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [user,        setUser]        = useState<User | null>(null);

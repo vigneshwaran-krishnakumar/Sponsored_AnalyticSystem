@@ -27,7 +27,7 @@ const Campaigns = () => {
   const fetchCampaigns = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch("http://localhost:5000/api/campaigns", {
+      const response = await fetch("https://sponsoredanalyticsystem-production-60f3.up.railway.app/api/campaigns", {
         headers: {
           'Authorization': `Bearer ${token}`
         }
