@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yazo – Video Metrics Dashboard</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0f1117;
+      --surface:     #1a1d27;
+      --surface2:    #22263a;
+      --border:      #2e3250;
+      --accent:      #6c63ff;
+      --accent2:     #a78bfa;
+      --green:       #22c55e;
+      --red:         #ef4444;
+      --yellow:      #f59e0b;
+      --blue:        #3b82f6;
+      --text:        #e2e8f0;
+      --muted:       #94a3b8;
+      --radius:      10px;
+      --shadow:      0 4px 24px rgba(0,0,0,.45);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Auth overlay ── */
+    #auth-overlay {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem;
+      width: 100%; max-width: 400px;
+      box-shadow: var(--shadow);
+    }
+    .auth-card h2 { font-size: 1.5rem; margin-bottom: .25rem; }
+    .auth-card p  { color: var(--muted); font-size: .875rem; margin-bottom: 1.5rem; }
+    .auth-tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+    .auth-tab {
+      flex: 1; padding: .5rem; border: 1px solid var(--border);
+      background: transparent; color: var(--muted);
+      border-radius: 6px; cursor: pointer; font-size: .875rem;
+      transition: all .2s;
+    }
+    .auth-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── Form elements ── */
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .35rem; }
+    input, select, textarea {
+      width: 100%; padding: .6rem .85rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: .9rem;
+      outline: none; transition: border-color .2s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    select option { background: var(--surface2); }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .55rem 1.1rem; border-radius: 6px; border: none;
+      cursor: pointer; font-size: .875rem; font-weight: 500;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary  { background: var(--accent);  color: #fff; }
+    .btn-success  { background: var(--green);   color: #fff; }
+    .btn-danger   { background: var(--red);     color: #fff; }
+    .btn-ghost    { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn:hover    { opacity: .88; }
+    .btn-full     { width: 100%; justify-content: center; }
+
+    #auth-error { color: var(--red); font-size: .8rem; margin-top: .75rem; display: none; }
+
+    /* ── Layout ── */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px; position: sticky; top: 0; z-index: 100;
+    }
+    .logo { font-size: 1.25rem; font-weight: 700; color: var(--accent2); letter-spacing: -.5px; }
+    .logo span { color: var(--accent); }
+    .header-right { display: flex; align-items: center; gap: 1rem; }
+    .user-badge {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: .3rem .85rem;
+      font-size: .8rem; color: var(--muted);
+    }
+
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 0; padding: 0 1.5rem; overflow-x: auto;
+    }
+    .nav-tab {
+      padding: .85rem 1.1rem; border: none; background: transparent;
+      color: var(--muted); cursor: pointer; font-size: .875rem;
+      border-bottom: 2px solid transparent; white-space: nowrap;
+      transition: color .2s, border-color .2s;
+    }
+    .nav-tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+    .nav-tab:hover  { color: var(--text); }
+
+    main { flex: 1; padding: 1.5rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+
+    /* ── KPI Cards ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .kpi-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem;
+    }
+    .kpi-label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .kpi-value { font-size: 1.75rem; font-weight: 700; margin: .35rem 0; }
+    .kpi-sub   { font-size: .75rem; color: var(--muted); }
+    .kpi-up    { color: var(--green); }
+    .kpi-down  { color: var(--red); }
+
+    /* ── Section header ── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem; flex-wrap: wrap; gap: .5rem;
+    }
+    .section-title { font-size: 1.1rem; font-weight: 600; }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--surface2); }
+    th {
+      padding: .75rem 1rem; text-align: left;
+      font-size: .75rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: .75rem 1rem; font-size: .875rem;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: .2rem .6rem;
+      border-radius: 20px; font-size: .72rem; font-weight: 600;
+    }
+    .badge-green  { background: rgba(34,197,94,.15);  color: var(--green); }
+    .badge-red    { background: rgba(239,68,68,.15);   color: var(--red); }
+    .badge-yellow { background: rgba(245,158,11,.15);  color: var(--yellow); }
+    .badge-blue   { background: rgba(59,130,246,.15);  color: var(--blue); }
+    .badge-purple { background: rgba(108,99,255,.15);  color: var(--accent2); }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.65);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; padding: 1rem;
+    }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.75rem;
+      width: 100%; max-width: 560px; max-height: 90vh;
+      overflow-y: auto; box-shadow: var(--shadow);
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .modal-title { font-size: 1.1rem; font-weight: 600; }
+    .modal-close {
+      background: none; border: none; color: var(--muted);
+      font-size: 1.25rem; cursor: pointer; line-height: 1;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-footer { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.25rem; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* ── Charts ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem;
+    }
+    .chart-title { font-size: .9rem; font-weight: 600; margin-bottom: 1rem; color: var(--muted); }
+    canvas { width: 100% !important; }
+
+    /* ── Thumbnail preview ── */
+    .thumb-preview {
+      width: 60px; height: 40px; object-fit: cover;
+      border-radius: 4px; background: var(--surface2);
+    }
+    .thumb-placeholder {
+      width: 60px; height: 40px; border-radius: 4px;
+      background: var(--surface2); display: flex;
+      align-items: center; justify-content: center;
+      font-size: .65rem; color: var(--muted);
+    }
+
+    /* ── Search / filter bar ── */
+    .filter-bar { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .filter-bar input, .filter-bar select { flex: 1; min-width: 160px; max-width: 260px; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center; padding: 3rem 1rem; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: .75rem; }
+
+    /* ── Toast ── */
+    #toast-container {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      display: flex; flex-direction: column; gap: .5rem; z-index: 9999;
+    }
+    .toast {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: .75rem 1.1rem;
+      font-size: .875rem; box-shadow: var(--shadow);
+      animation: slideIn .25s ease;
+    }
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error   { border-left: 3px solid var(--red); }
+    @keyframes slideIn { from { transform: translateX(60px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .form-row { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      main { padding: 1rem; }
+    }
+
+    /* ── Tab panels ── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Progress bar ── */
+    .progress-bar {
+      height: 6px; background: var(--surface2);
+      border-radius: 3px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: var(--accent);
+      border-radius: 3px; transition: width .4s;
+    }
+
+    /* ── Engagement rate color ── */
+    .eng-high   { color: var(--green); }
+    .eng-medium { color: var(--yellow); }
+    .eng-low    { color: var(--red); }
+
+    /* ── Action buttons in table ── */
+    .action-btns { display: flex; gap: .4rem; }
+    .btn-icon {
+      padding: .3rem .5rem; font-size: .8rem;
+      border-radius: 5px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--muted);
+      cursor: pointer; transition: all .2s;
+    }
+    .btn-icon:hover { color: var(--text); border-color: var(--accent); }
+    .btn-icon.del:hover { color: var(--red); border-color: var(--red); }
+  </style>
+</head>
+<body>
+
+<!-- ── Auth Overlay ── -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h2>🎬 Yazo</h2>
+    <p>Video Metrics Dashboard — sign in to continue</p>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+    </div>
+
+    <!-- Login form -->
+    <div id="login-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" />
+      </div>
+      <button class="btn btn-primary btn-full" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- Register form -->
+    <div id="register-form" style="display:none">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="reg-name" placeholder="Jane Doe" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="min 6 characters" />
+      </div>
+      <button class="btn btn-primary btn-full" onclick="doRegister()">Create Account</button>
+    </div>
+
+    <div id="auth-error"></div>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div id="app">
+  <header>
+    <div class="logo">Ya<span>zo</span></div>
+    <div class="header-right">
+      <span class="user-badge" id="user-badge">Loading…</span>
+      <button class="btn btn-ghost" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="nav-tab active" onclick="showTab('overview')">📊 Overview</button>
+    <button class="nav-tab" onclick="showTab('videos')">🎬 Videos</button>
+    <button class="nav-tab" onclick="showTab('campaigns')">📣 Campaigns</button>
+    <button class="nav-tab" onclick="showTab('influencers')">👤 Influencers</button>
+  </nav>
+
+  <main>
+
+    <!-- ── Overview Tab ── -->
+    <div id="tab-overview" class="tab-panel active">
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Revenue</div>
+          <div class="kpi-value" id="kpi-revenue">—</div>
+          <div class="kpi-sub">All campaigns combined</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Active Campaigns</div>
+          <div class="kpi-value" id="kpi-campaigns">—</div>
+          <div class="kpi-sub">Currently running</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg ROI</div>
+          <div class="kpi-value" id="kpi-roi">—</div>
+          <div class="kpi-sub">Across all campaigns</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Engagement</div>
+          <div class="kpi-value" id="kpi-engagement">—</div>
+          <div class="kpi-sub">Across all influencers</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Videos</div>
+          <div class="kpi-value" id="kpi-videos">—</div>
+          <div class="kpi-sub">Uploaded to platform</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Views</div>
+          <div class="kpi-value" id="kpi-views">—</div>
+          <div class="kpi-sub">Across all videos</div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">📈 Revenue by Campaign</div>
+          <canvas id="chart-revenue" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">🎯 Videos by Platform</div>
+          <canvas id="chart-platform" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">👥 Top Influencers by Revenue</div>
+          <canvas id="chart-influencers" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">📊 Campaign Status Breakdown</div>
+          <canvas id="chart-status" height="200"></canvas>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Recent Videos</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Thumb</th>
+              <th>Title</th>
+              <th>Platform</th>
+              <th>Views</th>
+              <th>Likes</th>
+              <th>Revenue</th>
+              <th>Campaign</th>
+            </tr>
+          </thead>
+          <tbody id="overview-videos-body">
+            <tr><td colspan="7"><div class="empty-state"><div class="spinner"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Videos Tab ── -->
+    <div id="tab-videos" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">Video Library</div>
+        <button class="btn btn-primary" onclick="openVideoModal()">+ Add Video</button>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" id="video-search" placeholder="Search videos…" oninput="renderVideos()" />
+        <select id="video-platform-filter" onchange="renderVideos()">
+          <option value="">All Platforms</option>
+          <option>YouTube</option>
+          <option>Instagram</option>
+          <option>TikTok</option>
+          <option>Twitter</option>
+          <option>Facebook</option>
+          <option>Other</option>
+        </select>
+        <select id="video-campaign-filter" onchange="renderVideos()">
+          <option value="">All Campaigns</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Thumb</th>
+              <th>Title</th>
+              <th>Platform</th>
+              <th>Views</th>
+              <th>Likes</th>
+              <th>Comments</th>
+              <th>Shares</th>
+              <th>Watch Hrs</th>
+              <th>Revenue</th>
+              <th>Campaign</th>
+              <th>Influencer</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="videos-body">
+            <tr><td colspan="12"><div class="empty-state"><div class="spinner"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Campaigns Tab ── -->
+    <div id="tab-campaigns" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">Campaigns</div>
+        <button class="btn btn-primary" onclick="openCampaignModal()">+ New Campaign</button>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" id="campaign-search" placeholder="Search campaigns…" oninput="renderCampaigns()" />
+        <select id="campaign-status-filter" onchange="renderCampaigns()">
+          <option value="">All Statuses</option>
+          <option>Active</option>
+          <option>Paused</option>
+          <option>Completed</option>
+          <option>Draft</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Brand</th>
+              <th>Status</th>
+              <th>Budget</th>
+              <th>Spent</th>
+              <th>Revenue</th>
+              <th>ROI</th>
+              <th>Budget Used</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="campaigns-body">
+            <tr><td colspan="11"><div class="empty-state"><div class="spinner"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Influencers Tab ── -->
+    <div id="tab-influencers" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">Influencer Roster</div>
+        <button class="btn btn-primary" onclick="openInfluencerModal()">+ Add Influencer</button>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" id="influencer-search" placeholder="Search influencers…" oninput="renderInfluencers()" />
+        <select id="influencer-platform-filter" onchange="renderInfluencers()">
+          <option value="">All Platforms</option>
+          <option>YouTube</option>
+          <option>Instagram</option>
+          <option>TikTok</option>
+          <option>Twitter</option>
+          <option>Facebook</option>
+        </select>
+        <select id="influencer-status-filter" onchange="renderInfluencers()">
+          <option value="">All Statuses</option>
+          <option>Active</option>
+          <option>Inactive</option>
+          <option>Negotiating</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Handle</th>
+              <th>Platform</th>
+              <th>Followers</th>
+              <th>Avg Views</th>
+              <th>Engagement</th>
+              <th>Revenue</th>
+              <th>Niche</th>
+              <th>Status</th>
+              <th>Campaigns</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="influencers-body">
+            <tr><td colspan="11"><div class="empty-state"><div class="spinner"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Toast Container ── -->
+<div id="toast-container"></div>
+
+<!-- ── Video Modal ── -->
+<div id="video-modal" class="modal-backdrop" style="display:none" onclick="closeOnBackdrop(event,'video-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="video-modal-title">Add Video</div>
+      <button class="modal-close" onclick="closeModal('video-modal')">✕</button>
+    </div>
+    <input type="hidden" id="video-id" />
+    <div class="form-group">
+      <label>Title *</label>
+      <input type="text" id="v-title" placeholder="Video title" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Platform *</label>
+        <select id="v-platform">
+          <option>YouTube</option>
+          <option>Instagram</option>
+          <option>TikTok</option>
+          <option>Twitter</option>
+          <option>Facebook</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Duration</label>
+        <input type="text" id="v-duration" placeholder="e.g. 5:32" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Video URL</label>
+      <input type="url" id="v-url" placeholder="https://…" />
+    </div>
+    <div class="form-group">
+      <label>Thumbnail URL</label>
+      <input type="url" id="v-thumbnail" placeholder="https://… (image URL)" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Publish Date</label>
+        <input type="date" id="v-publish-date" />
+      </div>
+      <div class="form-group">
+        <label>Campaign</label>
+        <select id="v-campaign"><option value="">— None —</option></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Influencer</label>
+      <select id="v-influencer"><option value="">— None —</option></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Views</label>
+        <input type="number" id="v-views" placeholder="0" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Likes</label>
+        <input type="number" id="v-likes" placeholder="0" min="0" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Comments</label>
+        <input type="number" id="v-comments" placeholder="0" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Shares</label>
+        <input type="number" id="v-shares" placeholder="0" min="0" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Watch Time (hrs)</label>
+        <input type="number" id="v-watch-time" placeholder="0.00" step="0.01" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Revenue ($)</label>
+        <input type="number" id="v-revenue" placeholder="0.00" step="0.01" min="0" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('video-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVideo()">Save Video</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Campaign Modal ── -->
+<div id="campaign-modal" class="modal-backdrop" style="display:none" onclick="closeOnBackdrop(event,'campaign-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="campaign-modal-title">New Campaign</div>
+      <button class="modal-close" onclick="closeModal('campaign-modal')">✕</button>
+    </div>
+    <input type="hidden" id="campaign-id" />
+    <div class="form-row">
+      <div class="form-group">
+        <label>Campaign Name *</label>
+        <input type="text" id="c-name" placeholder="Summer Launch" />
+      </div>
+      <div class="form-group">
+        <label>Brand *</label>
+        <input type="text" id="c-brand" placeholder="Acme Corp" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Status</label>
+        <select id="c-status">
+          <option>Active</option>
+          <option>Paused</option>
+          <option>Completed</option>
+          <option>Draft</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Budget ($)</label>
+        <input type="number" id="c-budget" placeholder="0.00" step="0.01" min="0" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Spent ($)</label>
+        <input type="number" id="c-spent" placeholder="0.00" step="0.01" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Revenue ($)</label>
+        <input type="number" id="c-revenue" placeholder="0.00" step="0.01" min="0" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="c-start" />
+      </div>
+      <div class="form-group">
+        <label>End Date</label>
+        <input type="date" id="c-end" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('campaign-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCampaign()">Save Campaign</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Influencer Modal ── -->
+<div id="influencer-modal" class="modal-backdrop" style="display:none" onclick="closeOnBackdrop(event,'influencer-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="influencer-modal-title">Add Influencer</div>
+      <button class="modal-close" onclick="closeModal('influencer-modal')">✕</button>
+    </div>
+    <input type="hidden" id="influencer-id" />
+    <div class="form-row">
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="i-name" placeholder="Jane Smith" />
+      </div>
+      <div class="form-group">
+        <label>Handle</label>
+        <input type="text" id="i-handle" placeholder="@janesmith" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Platform *</label>
+        <select id="i-platform">
+          <option>YouTube</option>
+          <option>Instagram</option>
+          <option>TikTok</option>
+          <option>Twitter</option>
+          <option>Facebook</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Niche</label>
+        <input type="text" id="i-niche" placeholder="Tech, Lifestyle…" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Followers *</label>
+        <input type="number" id="i-followers" placeholder="0" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Avg Views</label>
+        <input type="number" id="i-avg-views" placeholder="0" min="0" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Engagement Rate (%) *</label>
+        <input type="number" id="i-engagement" placeholder="0.00" step="0.01" min="0" max="100" />
+      </div>
+      <div class="form-group">
+        <label>Revenue ($)</label>
+        <input type="number" id="i-revenue" placeholder="0.00" step="0.01" min="0" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Status</label>
+        <select id="i-status">
+          <option>Active</option>
+          <option>Inactive</option>
+          <option>Negotiating</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Campaigns Count</label>
+        <input type="number" id="i-campaigns-count" placeholder="0" min="0" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('influencer-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInfluencer()">Save Influencer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Confirm Modal ── -->
+<div id="delete-modal" class="modal-backdrop" style="display:none" onclick="closeOnBackdrop(event,'delete-modal')">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title">Confirm Delete</div>
+      <button class="modal-close" onclick="closeModal('delete-modal')">✕</button>
+    </div>
+    <p style="color:var(--muted);font-size:.9rem" id="delete-confirm-text">Are you sure you want to delete this item? This action cannot be undone.</p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn btn-danger" id="delete-confirm-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Configuration ──
+  // Uses the Railway backend URL. For local development, change to http://localhost:8080/api
+  const API_BASE = 'https://sponsoredanalyticsystem-production-60f3.up.railway.app/api';
+
+  // ── State ──
+  let token = localStorage.getItem('yazo_token') || '';
+  let currentUser = null;
+  let videos = [], campaigns = [], influencers = [];
+  let charts = {};
+
+  // ── Utility: authenticated fetch ──
+  async function apiFetch(path, options = {}) {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...(options.headers || {}),
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  // ── Toast ──
+  function toast(msg, type = 'success') {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  // ── Format helpers ──
+  function fmt(n) {
+    n = Number(n) || 0;
+    if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+    if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+    return n.toLocaleString();
+  }
+  function fmtMoney(n) { return '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function fmtDate(d)  { return d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }
+  function engClass(r) { r = Number(r); return r >= 5 ? 'eng-high' : r >= 2 ? 'eng-medium' : 'eng-low'; }
+
+  // ── Platform badge color ──
+  function platformBadge(p) {
+    const map = { YouTube: 'badge-red', Instagram: 'badge-purple', TikTok: 'badge-blue', Twitter: 'badge-blue', Facebook: 'badge-blue', Other: 'badge-yellow' };
+    return `<span class="badge ${map[p] || 'badge-yellow'}">${p}</span>`;
+  }
+  function statusBadge(s) {
+    const map = { Active: 'badge-green', Paused: 'badge-yellow', Completed: 'badge-blue', Draft: 'badge-yellow', Inactive: 'badge-red', Negotiating: 'badge-yellow' };
+    return `<span class="badge ${map[s] || 'badge-yellow'}">${s}</span>`;
+  }
+
+  // ── Auth tab switch ──
+  function switchAuthTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (tab === 'login')));
+    document.getElementById('login-form').style.display    = tab === 'login'    ? '' : 'none';
+    document.getElementById('register-form').style.display = tab === 'register' ? '' : 'none';
+    document.getElementById('auth-error').style.display = 'none';
+  }
+
+  function showAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  // ── Login ──
+  async function doLogin() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) return showAuthError('Please fill in all fields.');
+    try {
+      const data = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      }).then(r => r.json());
+      if (!data.token) throw new Error(data.error || 'Login failed');
+      token = data.token;
+      currentUser = data.user;
+      localStorage.setItem('yazo_token', token);
+      localStorage.setItem('yazo_user', JSON.stringify(currentUser));
+      bootApp();
+    } catch (e) {
+      showAuthError(e.message);
+    }
+  }
+
+  // ── Register ──
+  async function doRegister() {
+    const name     = document.getElementById('reg-name').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!name || !email || !password) return showAuthError('Please fill in all fields.');
+    if (password.length < 6) return showAuthError('Password must be at least 6 characters.');
+    try {
+      const data = await fetch(`${API_BASE}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      }).then(r => r.json());
+      if (data.error) throw new Error(data.error);
+      toast('Account created! Please sign in.');
+      switchAuthTab('login');
+      document.getElementById('login-email').value = email;
+    } catch (e) {
+      showAuthError(e.message);
+    }
+  }
+
+  // ── Logout ──
+  function doLogout() {
+    token = '';
+    currentUser = null;
+    localStorage.removeItem('yazo_token');
+    localStorage.removeItem('yazo_user');
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('auth-overlay').style.display = 'flex';
+  }
+
+  // ── Boot app after auth ──
+  async function bootApp() {
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('user-badge').textContent = currentUser?.name || currentUser?.email || 'User';
+    await loadAllData();
+    renderOverview();
+  }
+
+  // ── Load all data ──
+  async function loadAllData() {
+    try {
+      [videos, campaigns, influencers] = await Promise.all([
+        apiFetch('/videos'),
+        apiFetch('/campaigns'),
+        apiFetch('/influencers'),
+      ]);
+    } catch (e) {
+      toast('Failed to load data: ' + e.message, 'error');
+    }
+  }
+
+  // ── Tab navigation ──
+  function showTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`tab-${name}`).classList.add('active');
+    event.currentTarget.classList.add('active');
+
+    if (name === 'overview')    renderOverview();
+    if (name === 'videos')      renderVideos();
+    if (name === 'campaigns')   renderCampaigns();
+    if (name === 'influencers') renderInfluencers();
+  }
+
+  // ── Overview ──
+  function renderOverview() {
+    // KPIs
+    const totalRevenue    = campaigns.reduce((s, c) => s + Number(c.revenue || 0), 0);
+    const activeCampaigns = campaigns.filter(c => c.status === 'Active').length;
+    const avgROI          = campaigns.length
+      ? campaigns.reduce((s, c) => {
+          const spent = Number(c.spent || 0);
+          return s + (spent > 0 ? ((Number(c.revenue || 0) - spent) / spent) * 100 : 0);
+        }, 0) / campaigns.length
+      : 0;
+    const avgEng = influencers.length
+      ? influencers.reduce((s, i) => s + Number(i.engagement_rate || 0), 0) / influencers.length
+      : 0;
+    const totalViews = videos.reduce((s, v) => s + Number(v.views || 0), 0);
+
+    document.getElementById('kpi-revenue').textContent    = fmtMoney(totalRevenue);
+    document.getElementById('kpi-campaigns').textContent  = activeCampaigns;
+    document.getElementById('kpi-roi').textContent        = Math.round(avgROI) + '%';
+    document.getElementById('kpi-engagement').textContent = avgEng.toFixed(1) + '%';
+    document.getElementById('kpi-videos').textContent     = videos.length;
+    document.getElementById('kpi-views').textContent      = fmt(totalViews);
+
+    // Recent videos table
+    const recent = [...videos].slice(0, 8);
+    const tbody = document.getElementById('overview-videos-body');
+    if (!recent.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">🎬</div>No videos yet</div></td></tr>`;
+    } else {
+      tbody.innerHTML = recent.map(v => `
+        <tr>
+          <td>${v.thumbnail ? `<img class="thumb-preview" src="${escHtml(v.thumbnail)}" alt="" onerror="this.style.display='none'">` : `<div class="thumb-placeholder">No img</div>`}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(v.title)}">${escHtml(v.title)}</td>
+          <td>${platformBadge(v.platform)}</td>
+          <td>${fmt(v.views)}</td>
+          <td>${fmt(v.likes)}</td>
+          <td>${fmtMoney(v.revenue)}</td>
+          <td>${v.campaign_name ? escHtml(v.campaign_name) : '—'}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Charts
+    drawCharts();
+  }
+
+  // ── Draw Charts (pure canvas, no external lib) ──
+  function drawCharts() {
+    drawBarChart('chart-revenue',
+      campaigns.slice(0, 8).map(c => c.name),
+      campaigns.slice(0, 8).map(c => Number(c.revenue || 0)),
+      '#6c63ff'
+    );
+
+    const platformCounts = {};
+    videos.forEach(v => { platformCounts[v.platform] = (platformCounts[v.platform] || 0) + 1; });
+    drawDonutChart('chart-platform', Object.keys(platformCounts), Object.values(platformCounts));
+
+    const topInfluencers = [...influencers].sort((a, b) => Number(b.revenue) - Number(a.revenue)).slice(0, 6);
+    drawBarChart('chart-influencers',
+      topInfluencers.map(i => i.name),
+      topInfluencers.map(i => Number(i.revenue || 0)),
+      '#22c55e'
+    );
+
+    const statusCounts = {};
+    campaigns.forEach(c => { statusCounts[c.status] = (statusCounts[c.status] || 0) + 1; });
+    drawDonutChart('chart-status', Object.keys(statusCounts), Object.values(statusCounts));
+  }
+
+  function drawBarChart(id, labels, values, color) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth || 400;
+    const H = 200;
+    canvas.width = W; canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
+
+    if (!values.length || values.every(v => v === 0)) {
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('No data yet', W / 2, H / 2);
+      return;
+    }
+
+    const pad = { top: 20, right: 20, bottom: 50, left: 55 };
+    const chartW = W - pad.left - pad.right;
+    const chartH = H - pad.top - pad.bottom;
+    const max = Math.max(...values) || 1;
+    const barW = Math.max(8, (chartW / values.length) * 0.6);
+    const gap  = chartW / values.length;
+
+    // Grid lines
+    ctx.strokeStyle = '#2e3250';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.top + chartH - (chartH / 4) * i;
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + chartW, y); ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(fmt((max / 4) * i), pad.left - 5, y + 3);
+    }
+
+    // Bars
+    values.forEach((v, i) => {
+      const x = pad.left + gap * i + (gap - barW) / 2;
+      const barH = (v / max) * chartH;
+      const y = pad.top + chartH - barH;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x, y, barW, barH, 3) : ctx.rect(x, y, barW, barH);
+      ctx.fill();
+
+      // Label
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      const lbl = (labels[i] || '').substring(0, 8);
+      ctx.fillText(lbl, x + barW / 2, H - pad.bottom + 14);
+    });
+  }
+
+  function drawDonutChart(id, labels, values) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth || 400;
+    const H = 200;
+    canvas.width = W; canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
+
+    const total = values.reduce((s, v) => s + v, 0);
+    if (!total) {
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('No data yet', W / 2, H / 2);
+      return;
+    }
+
+    const colors = ['#6c63ff','#22c55e','#f59e0b','#3b82f6','#ef4444','#a78bfa','#ec4899'];
+    const cx = W * 0.35, cy = H / 2, r = Math.min(cx, cy) - 15, inner = r * 0.55;
+    let angle = -Math.PI / 2;
+
+    values.forEach((v, i) => {
+      const slice = (v / total) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, angle, angle + slice);
+      ctx.closePath();
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.fill();
+      angle += slice;
+    });
+
+    // Donut hole
+    ctx.beginPath();
+    ctx.arc(cx, cy, inner, 0, Math.PI * 2);
+    ctx.fillStyle = '#1a1d27';
+    ctx.fill();
+
+    // Center text
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(total, cx, cy + 5);
+
+    // Legend
+    const legendX = W * 0.65;
+    labels.forEach((lbl, i) => {
+      const y = 30 + i * 22;
+      if (y > H - 10) return;
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.fillRect(legendX, y - 8, 10, 10);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'left';
+      const pct = Math.round((values[i] / total) * 100);
+      ctx.fillText(`${lbl} (${pct}%)`, legendX + 14, y);
+    });
+  }
+
+  // ── Videos ──
+  function renderVideos() {
+    const search   = (document.getElementById('video-search')?.value || '').toLowerCase();
+    const platform = document.getElementById('video-platform-filter')?.value || '';
+    const campId   = document.getElementById('video-campaign-filter')?.value || '';
+
+    // Populate campaign filter
+    const cf = document.getElementById('video-campaign-filter');
+    if (cf && cf.options.length <= 1) {
+      campaigns.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.id; o.textContent = c.name;
+        cf.appendChild(o);
+      });
+    }
+
+    const filtered = videos.filter(v =>
+      (!search   || v.title.toLowerCase().includes(search)) &&
+      (!platform || v.platform === platform) &&
+      (!campId   || v.campaign_id === campId)
+    );
+
+    const tbody = document.getElementById('videos-body');
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><div class="icon">🎬</div>${videos.length ? 'No videos match your filters' : 'No videos yet — add one!'}</div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(v => `
+      <tr>
+        <td>${v.thumbnail ? `<img class="thumb-preview" src="${escHtml(v.thumbnail)}" alt="" onerror="this.style.display='none'">` : `<div class="thumb-placeholder">No img</div>`}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(v.title)}">${escHtml(v.title)}</td>
+        <td>${platformBadge(v.platform)}</td>
+        <td>${fmt(v.views)}</td>
+        <td>${fmt(v.likes)}</td>
+        <td>${fmt(v.comments)}</td>
+        <td>${fmt(v.shares)}</td>
+        <td>${Number(v.watch_time_hrs || 0).toFixed(1)}</td>
+        <td>${fmtMoney(v.revenue)}</td>
+        <td>${v.campaign_name ? escHtml(v.campaign_name) : '—'}</td>
+        <td>${v.influencer_name ? escHtml(v.influencer_name) : '—'}</td>
+        <td>
+          <div class="action-btns">
+            <button class="btn-icon" onclick="editVideo('${v.id}')" title="Edit">✏️</button>
+            <button class="btn-icon del" onclick="confirmDelete('video','${v.id}','${escHtml(v.title)}')" title="Delete">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ── Campaigns ──
+  function renderCampaigns() {
+    const search = (document.getElementById('campaign-search')?.value || '').toLowerCase();
+    const status = document.getElementById('campaign-status-filter')?.value || '';
+
+    const filtered = campaigns.filter(c =>
+      (!search || c.name.toLowerCase().includes(search) || (c.brand || '').toLowerCase().includes(search)) &&
+      (!status || c.status === status)
+    );
+
+    const tbody = document.getElementById('campaigns-body');
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="icon">📣</div>${campaigns.length ? 'No campaigns match your filters' : 'No campaigns yet — create one!'}</div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(c => {
+      const budget = Number(c.budget || 0);
+      const spent  = Number(c.spent  || 0);
+      const pct    = budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : 0;
+      const roi    = spent > 0 ? Math.round(((Number(c.revenue || 0) - spent) / spent) * 100) : 0;
+      return `
+        <tr>
+          <td style="font-weight:500">${escHtml(c.name)}</td>
+          <td>${escHtml(c.brand || '—')}</td>
+          <td>${statusBadge(c.status)}</td>
+          <td>${fmtMoney(c.budget)}</td>
+          <td>${fmtMoney(c.spent)}</td>
+          <td>${fmtMoney(c.revenue)}</td>
+          <td class="${roi >= 0 ? 'kpi-up' : 'kpi-down'}">${roi}%</td>
+          <td style="min-width:100px">
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <div style="font-size:.7rem;color:var(--muted);margin-top:2px">${pct}%</div>
+          </td>
+          <td>${fmtDate(c.start_date)}</td>
+          <td>${fmtDate(c.end_date)}</td>
+          <td>
+            <div class="action-btns">
+              <button class="btn-icon" onclick="editCampaign('${c.id}')" title="Edit">✏️</button>
+              <button class="btn-icon del" onclick="confirmDelete('campaign','${c.id}','${escHtml(c.name)}')" title="Delete">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ── Influencers ──
+  function renderInfluencers() {
+    const search   = (document.getElementById('influencer-search')?.value || '').toLowerCase();
+    const platform = document.getElementById('influencer-platform-filter')?.value || '';
+    const status   = document.getElementById('influencer-status-filter')?.value || '';
+
+    const filtered = influencers.filter(i =>
+      (!search   || i.name.toLowerCase().includes(search) || (i.handle || '').toLowerCase().includes(search)) &&
+      (!platform || i.platform === platform) &&
+      (!status   || i.status === status)
+    );
+
+    const tbody = document.getElementById('influencers-body');
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="icon">👤</div>${influencers.length ? 'No influencers match your filters' : 'No influencers yet — add one!'}</div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(i => `
+      <tr>
+        <td style="font-weight:500">${escHtml(i.name)}</td>
+        <td style="color:var(--muted)">${i.handle ? escHtml(i.handle) : '—'}</td>
+        <td>${platformBadge(i.platform)}</td>
+        <td>${fmt(i.followers)}</td>
+        <td>${fmt(i.avg_views)}</td>
+        <td class="${engClass(i.engagement_rate)}">${Number(i.engagement_rate || 0).toFixed(2)}%</td>
+        <td>${fmtMoney(i.revenue)}</td>
+        <td>${i.niche ? escHtml(i.niche) : '—'}</td>
+        <td>${statusBadge(i.status || 'Active')}</td>
+        <td>${i.campaigns_count || 0}</td>
+        <td>
+          <div class="action-btns">
+            <button class="btn-icon" onclick="editInfluencer('${i.id}')" title="Edit">✏️</button>
+            <button class="btn-icon del" onclick="confirmDelete('influencer','${i.id}','${escHtml(i.name)}')" title="Delete">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ── Modal helpers ──
+  function openModal(id)  { document.getElementById(id).style.display = 'flex'; }
+  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+  function closeOnBackdrop(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+  // ── Video Modal ──
+  function openVideoModal(video = null) {
+    document.getElementById('video-modal-title').textContent = video ? 'Edit Video' : 'Add Video';
+    document.getElementById('video-id').value       = video?.id || '';
+    document.getElementById('v-title').value        = video?.title || '';
+    document.getElementById('v-platform').value     = video?.platform || 'YouTube';
+    document.getElementById('v-duration').value     = video?.duration || '';
+    document.getElementById('v-url').value          = video?.url || '';
+    document.getElementById('v-thumbnail').value    = video?.thumbnail || '';
+    document.getElementById('v-publish-date').value = video?.publish_date ? video.publish_date.split('T')[0] : '';
+    document.getElementById('v-views').value        = video?.views || '';
+    document.getElementById('v-likes').value        = video?.likes || '';
+    document.getElementById('v-comments').value     = video?.comments || '';
+    document.getElementById('v-shares').value       = video?.shares || '';
+    document.getElementById('v-watch-time').value   = video?.watch_time_hrs || '';
+    document.getElementById('v-revenue').value      = video?.revenue || '';
+
+    // Populate campaign & influencer selects
+    const cs = document.getElementById('v-campaign');
+    cs.innerHTML = '<option value="">— None —</option>';
+    campaigns.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = c.name;
+      if (video?.campaign_id === c.id) o.selected = true;
+      cs.appendChild(o);
+    });
+
+    const is = document.getElementById('v-influencer');
+    is.innerHTML = '<option value="">— None —</option>';
+    influencers.forEach(i => {
+      const o = document.createElement('option');
+      o.value = i.id; o.textContent = i.name;
+      if (video?.influencer_id === i.id) o.selected = true;
+      is.appendChild(o);
+    });
+
+    openModal('video-modal');
+  }
+
+  function editVideo(id) {
+    const v = videos.find(v => String(v.id) === String(id));
+    if (v) openVideoModal(v);
+  }
+
+  async function saveVideo() {
+    const id = document.getElementById('video-id').value;
+    const payload = {
+      title:          document.getElementById('v-title').value.trim(),
+      platform:       document.getElementById('v-platform').value,
+      duration:       document.getElementById('v-duration').value.trim(),
+      url:            document.getElementById('v-url').value.trim(),
+      thumbnail:      document.getElementById('v-thumbnail').value.trim(),
+      publish_date:   document.getElementById('v-publish-date').value || null,
+      campaign_id:    document.getElementById('v-campaign').value || null,
+      influencer_id:  document.getElementById('v-influencer').value || null,
+      views:          Number(document.getElementById('v-views').value) || 0,
+      likes:          Number(document.getElementById('v-likes').value) || 0,
+      comments:       Number(document.getElementById('v-comments').value) || 0,
+      shares:         Number(document.getElementById('v-shares').value) || 0,
+      watch_time_hrs: Number(document.getElementById('v-watch-time').value) || 0,
+      revenue:        Number(document.getElementById('v-revenue').value) || 0,
+    };
+    if (!payload.title) return toast('Title is required', 'error');
+    try {
+      if (id) {
+        await apiFetch(`/videos/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        toast('Video updated');
+      } else {
+        await apiFetch('/videos', { method: 'POST', body: JSON.stringify(payload) });
+        toast('Video added');
+      }
+      closeModal('video-modal');
+      await loadAllData();
+      renderVideos();
+      renderOverview();
+    } catch (e) {
+      toast('Error: ' + e.message, 'error');
+    }
+  }
+
+  // ── Campaign Modal ──
+  function openCampaignModal(campaign = null) {
+    document.getElementById('campaign-modal-title').textContent = campaign ? 'Edit Campaign' : 'New Campaign';
+    document.getElementById('campaign-id').value = campaign?.id || '';
+    document.getElementById('c-name').value    = campaign?.name    || '';
+    document.getElementById('c-brand').value   = campaign?.brand   || '';
+    document.getElementById('c-status').value  = campaign?.status  || 'Active';
+    document.getElementById('c-budget').value  = campaign?.budget  || '';
+    document.getElementById('c-spent').value   = campaign?.spent   || '';
+    document.getElementById('c-revenue').value = campaign?.revenue || '';
+    document.getElementById('c-start').value   = campaign?.start_date ? campaign.start_date.split('T')[0] : '';
+    document.getElementById('c-end').value     = campaign?.end_date   ? campaign.end_date.split('T')[0]   : '';
+    openModal('campaign-modal');
+  }
+
+  function editCampaign(id) {
+    const c = campaigns.find(c => String(c.id) === String(id));
+    if (c) openCampaignModal(c);
+  }
+
+  async function saveCampaign() {
+    const id = document.getElementById('campaign-id').value;
+    const payload = {
+      name:       document.getElementById('c-name').value.trim(),
+      brand:      document.getElementById('c-brand').value.trim(),
+      status:     document.getElementById('c-status').value,
+      budget:     Number(document.getElementById('c-budget').value) || 0,
+      spent:      Number(document.getElementById('c-spent').value)  || 0,
+      revenue:    Number(document.getElementById('c-revenue').value) || 0,
+      start_date: document.getElementById('c-start').value || null,
+      end_date:   document.getElementById('c-end').value   || null,
+    };
+    if (!payload.name || !payload.brand) return toast('Name and brand are required', 'error');
+    try {
+      if (id) {
+        await apiFetch(`/campaigns/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        toast('Campaign updated');
+      } else {
+        await apiFetch('/campaigns', { method: 'POST', body: JSON.stringify(payload) });
+        toast('Campaign created');
+      }
+      closeModal('campaign-modal');
+      await loadAllData();
+      renderCampaigns();
+      renderOverview();
+    } catch (e) {
+      toast('Error: ' + e.message, 'error');
+    }
+  }
+
+  // ── Influencer Modal ──
+  function openInfluencerModal(influencer = null) {
+    document.getElementById('influencer-modal-title').textContent = influencer ? 'Edit Influencer' : 'Add Influencer';
+    document.getElementById('influencer-id').value       = influencer?.id || '';
+    document.getElementById('i-name').value              = influencer?.name || '';
+    document.getElementById('i-handle').value            = influencer?.handle || '';
+    document.getElementById('i-platform').value          = influencer?.platform || 'YouTube';
+    document.getElementById('i-niche').value             = influencer?.niche || '';
+    document.getElementById('i-followers').value         = influencer?.followers || '';
+    document.getElementById('i-avg-views').value         = influencer?.avg_views || '';
+    document.getElementById('i-engagement').value        = influencer?.engagement_rate || '';
+    document.getElementById('i-revenue').value           = influencer?.revenue || '';
+    document.getElementById('i-status').value            = influencer?.status || 'Active';
+    document.getElementById('i-campaigns-count').value   = influencer?.campaigns_count || '';
+    openModal('influencer-modal');
+  }
+
+  function editInfluencer(id) {
+    const i = influencers.find(i => String(i.id) === String(id));
+    if (i) openInfluencerModal(i);
+  }
+
+  async function saveInfluencer() {
+    const id = document.getElementById('influencer-id').value;
+    const payload = {
+      name:            document.getElementById('i-name').value.trim(),
+      handle:          document.getElementById('i-handle').value.trim(),
+      platform:        document.getElementById('i-platform').value,
+      niche:           document.getElementById('i-niche').value.trim(),
+      followers:       Number(document.getElementById('i-followers').value) || 0,
+      avg_views:       Number(document.getElementById('i-avg-views').value) || 0,
+      engagement_rate: Number(document.getElementById('i-engagement').value) || 0,
+      revenue:         Number(document.getElementById('i-revenue').value) || 0,
+      status:          document.getElementById('i-status').value,
+      campaigns_count: Number(document.getElementById('i-campaigns-count').value) || 0,
+    };
+    if (!payload.name || !payload.platform) return toast('Name and platform are required', 'error');
+    try {
+      if (id) {
+        await apiFetch(`/influencers/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        toast('Influencer updated');
+      } else {
+        await apiFetch('/influencers', { method: 'POST', body: JSON.stringify(payload) });
+        toast('Influencer added');
+      }
+      closeModal('influencer-modal');
+      await loadAllData();
+      renderInfluencers();
+      renderOverview();
+    } catch (e) {
+      toast('Error: ' + e.message, 'error');
+    }
+  }
+
+  // ── Delete ──
+  function confirmDelete(type, id, name) {
+    document.getElementById('delete-confirm-text').textContent =
+      `Delete "${name}"? This action cannot be undone.`;
+    const btn = document.getElementById('delete-confirm-btn');
+    btn.onclick = () => doDelete(type, id);
+    openModal('delete-modal');
+  }
+
+  async function doDelete(type, id) {
+    const endpoints = { video: '/videos', campaign: '/campaigns', influencer: '/influencers' };
+    try {
+      await apiFetch(`${endpoints[type]}/${id}`, { method: 'DELETE' });
+      toast(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted`);
+      closeModal('delete-modal');
+      await loadAllData();
+      if (type === 'video')      renderVideos();
+      if (type === 'campaign')   renderCampaigns();
+      if (type === 'influencer') renderInfluencers();
+      renderOverview();
+    } catch (e) {
+      toast('Error: ' + e.message, 'error');
+    }
+  }
+
+  // ── XSS protection ──
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Keyboard shortcuts ──
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      ['video-modal','campaign-modal','influencer-modal','delete-modal'].forEach(closeModal);
+    }
+    if ((e.key === 'Enter') && document.getElementById('auth-overlay').style.display !== 'none') {
+      const loginVisible = document.getElementById('login-form').style.display !== 'none';
+      if (loginVisible) doLogin(); else doRegister();
+    }
+  });
+
+  // ── Init: check for existing session ──
+  (async function init() {
+    const savedUser = localStorage.getItem('yazo_user');
+    if (token && savedUser) {
+      try {
+        // Validate token is still good
+        const data = await fetch(`${API_BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(r => r.json());
+        if (data.user) {
+          currentUser = data.user;
+          bootApp();
+          return;
+        }
+      } catch (_) {}
+    }
+    // Clear stale session
+    localStorage.removeItem('yazo_token');
+    localStorage.removeItem('yazo_user');
+    token = '';
+  })();
+</script>
+</body>
+</html>
